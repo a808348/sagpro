@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>避震器調整工具</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f12;
+    --surface: #1a1a20;
+    --surface2: #22222a;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --accent: #f97316;
+    --accent2: #fb923c;
+    --blue: #60a5fa;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --text: #f1f0ed;
+    --text2: #9ca3af;
+    --text3: #6b7280;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1a20 0%, #12121a 100%);
+    border-bottom: 1px solid var(--accent);
+    padding: 1.2rem 1rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  header h1 span.icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+    margin-left: 42px;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 0.85rem 1.2rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--surface2);
+  }
+
+  .panel { display: none; padding: 1rem; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .field {
+    margin-bottom: 1rem;
+  }
+
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+
+  .field label span.val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    outline: none;
+    accent-color: var(--accent);
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  input[type=number] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    padding: 0.7rem 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type=number]:focus { border-color: var(--accent); }
+  input[type=number]::placeholder { color: var(--text3); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+  .metric {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    text-align: center;
+  }
+  .metric .label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .metric .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .metric .unit {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .good { color: var(--green); }
+  .warn { color: var(--yellow); }
+  .bad  { color: var(--red); }
+
+  .sag-bar-wrap {
+    background: var(--surface2);
+    border-radius: 6px;
+    height: 24px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+    position: relative;
+  }
+  .sag-bar {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.4s ease, background 0.4s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 40px;
+  }
+  .zone-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+    padding: 0 2px;
+  }
+
+  .advice-item {
+    display: flex;
+    gap: 10px;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .advice-item:last-child { border-bottom: none; }
+
+  .advice-tag {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    height: fit-content;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .tag-adjust { background: rgba(249,115,22,0.15); color: var(--accent); }
+  .tag-ok     { background: rgba(74,222,128,0.12); color: var(--green); }
+  .tag-check  { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .tag-info   { background: rgba(96,165,250,0.12); color: var(--blue); }
+
+  .advice-text { font-size: 13px; line-height: 1.6; }
+  .advice-text strong { color: var(--text); font-weight: 600; }
+
+  button.primary {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.02em;
+    margin-top: 0.5rem;
+  }
+  button.primary:active { transform: scale(0.98); opacity: 0.85; }
+
+  button.secondary {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.7rem;
+    font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  button.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .record-list { max-height: 60vh; overflow-y: auto; }
+  .record-item {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid var(--accent);
+    position: relative;
+  }
+  .record-item .rec-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  .record-item .rec-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .record-item .rec-date {
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .record-item .rec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .record-item .rec-grid span strong {
+    display: block;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+  }
+  .del-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .del-btn:hover { color: var(--red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text3);
+  }
+  .empty-state .big { font-size: 40px; margin-bottom: 1rem; }
+
+  .clicker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 0.5rem;
+  }
+  .clicker-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .clicker-btn:active { transform: scale(0.9); background: var(--accent); color: #fff; }
+  .clicker-display {
+    flex: 1;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+  }
+  .clicker-display .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .clicker-display .lbl {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  .section-note {
+    font-size: 12px;
+    color: var(--text3);
+    background: rgba(96,165,250,0.06);
+    border-left: 3px solid var(--blue);
+    padding: 0.6rem 0.75rem;
+    border-radius: 0 6px 6px 0;
+    margin: -0.25rem 0 1rem;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 999;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    padding: 1.5rem 1rem 2rem;
+    width: 100%;
+    max-width: 500px;
+    border-top: 1px solid var(--border2);
+  }
+  .modal h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--accent);
+  }
+  .modal input[type=text] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    padding: 0.7rem 1rem;
+    outline: none;
+    margin-bottom: 1rem;
+  }
+  .modal input[type=text]:focus { border-color: var(--accent); }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #fff;
+    padding: 0.65rem 1.4rem;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    padding: 0.65rem 1rem;
+    width: 100%;
+    outline: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="icon">⚙</span> 避震器調整工具</h1>
+  <p>Suspension Tuning Assistant · SAG / 壓縮 / 回彈</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('sag')">SAG 計算</div>
+  <div class="tab" onclick="switchTab('damper')">阻尼設定</div>
+  <div class="tab" onclick="switchTab('advice')">調整建議</div>
+  <div class="tab" onclick="switchTab('log')">紀錄表</div>
+</div>
+
+<!-- SAG 計算 -->
+<div id="tab-sag" class="panel active">
+  <div class="card">
+    <h2>🏍 基本資料</h2>
+    <div class="field">
+      <label>騎乘者體重 <span class="val" id="weight-val">75 kg</span></label>
+      <input type="range" id="weight" min="40" max="150" value="75" step="1" oninput="onWeightChange()">
+    </div>
+    <div class="field">
+      <label>含裝備額外重量 <span class="val" id="gear-val">5 kg</span></label>
+      <input type="range" id="gear" min="0" max="30" value="5" step="1" oninput="onWeightChange()">
+    </div>
+    <div class="field">
+      <label>避震器類型</label>
+      <select id="suspension-type" onchange="updateAdvice()">
+        <option value="mtb-rear">登山車 後避震</option>
+        <option value="mtb-fork">登山車 前叉</option>
+        <option value="moto-rear">摩托車 後避震</option>
+        <option value="moto-front">摩托車 前叉</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📏 下沉量測量</h2>
+    <p class="section-note">三種測量：自由下沉（無人）、靜態 SAG（有人無騎乘姿）、動態 SAG（騎乘姿勢）</p>
+
+    <div class="grid2">
+      <div class="field">
+        <label>行程總長<br><small style="color:var(--text3)">Travel (mm)</small></label>
+        <input type="number" id="travel" value="150" min="50" max="300" placeholder="mm" oninput="calcSag()">
+      </div>
+      <div class="field">
+        <label>自由下沉量<br><small style="color:var(--text3)">Free Sag (mm)</small></label>
+        <input type="number" id="free-sag" value="0" min="0" max="100" placeholder="mm" oninput="calcSag()">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>靜態下沉量 (Static SAG) <span class="val" id="static-sag-click">0 mm</span></label>
+      <div class="clicker-row">
+        <button class="clicker-btn" onclick="adjustVal('static-sag-n',-1)">−</button>
+        <div class="clicker-display">
+          <span class="num" id="static-sag-n">0</span>
+          <span class="lbl">mm</span>
+        </div>
+        <button class="clicker-btn" onclick="adjustVal('static-sag-n',1)">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>動態下沉量 (Rider SAG) <span class="val" id="rider-sag-click">0 mm</span></label>
+      <div class="clicker-row">
+        <button class="clicker-btn" onclick="adjustVal('rider-sag-n',-1)">−</button>
+        <div class="clicker-display">
+          <span class="num" id="rider-sag-n">0</span>
+          <span class="lbl">mm</span>
+        </div>
+        <button class="clicker-btn" onclick="adjustVal('rider-sag-n',1)">+</button>
+      </div>
+    </div>
+
+    <button class="primary" onclick="calcSag()">計算 SAG%</button>
+  </div>
+
+  <div class="card" id="sag-result-card">
+    <h2>📊 SAG 結果</h2>
+    <div class="grid3" style="margin-bottom:1rem">
+      <div class="metric">
+        <div class="label">靜態 SAG</div>
+        <div class="value" id="static-pct">—</div>
+        <div class="unit">%</div>
+      </div>
+      <div class="metric">
+        <div class="label">動態 SAG</div>
+        <div class="value" id="rider-pct">—</div>
+        <div class="unit">%</div>
+      </div>
+      <div class="metric">
+        <div class="label">自由 SAG</div>
+        <div class="value" id="free-pct">—</div>
+        <div class="unit">%</div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:4px">
+        <span>動態 SAG 範圍指示</span>
+        <span id="sag-status-label">—</span>
+      </div>
+      <div class="sag-bar-wrap">
+        <div class="sag-bar" id="sag-bar">0%</div>
+      </div>
+      <div class="zone-labels">
+        <span>0%</span>
+        <span style="color:var(--red)">↑ 太硬 25%</span>
+        <span style="color:var(--green)">推薦 25~35%</span>
+        <span style="color:var(--yellow)">太軟 40% ↑</span>
+        <span>50%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 阻尼設定 -->
+<div id="tab-damper" class="panel">
+  <div class="card">
+    <h2>🔧 壓縮阻尼 (Compression)</h2>
+    <p class="section-note">LSC = 低速壓縮，HSC = 高速壓縮。一般從中間值開始調整。</p>
+
+    <div class="field">
+      <label>低速壓縮 LSC <span class="val" id="lsc-val">10 clicks</span></label>
+      <div class="clicker-row">
+        <button class="clicker-btn" onclick="adjustVal('lsc-n',-1)">−</button>
+        <div class="clicker-display">
+          <span class="num" id="lsc-n">10</span>
+          <span class="lbl">clicks</span>
+        </div>
+        <button class="clicker-btn" onclick="adjustVal('lsc-n',1)">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>高速壓縮 HSC <span class="val" id="hsc-val">5 clicks</span></label>
+      <div class="clicker-row">
+        <button class="clicker-btn" onclick="adjustVal('hsc-n',-1)">−</button>
+        <div class="clicker-display">
+          <span class="num" id="hsc-n">5</span>
+          <span class="lbl">clicks</span>
+        </div>
+        <button class="clicker-btn" onclick="adjustVal('hsc-n',1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔩 回彈阻尼 (Rebound)</h2>
+    <p class="section-note">LSR = 低速回彈，HSR = 高速回彈。回彈太快會跳動，太慢會堆疊。</p>
+
+    <div class="field">
+      <label>低速回彈 LSR <span class="val" id="lsr-val">10 clicks</span></label>
+      <div class="clicker-row">
+        <button class="clicker-btn" onclick="adjustVal('lsr-n',-1)">−</button>
+        <div class="clicker-display">
+          <span class="num" id="lsr-n">10</span>
+          <span class="lbl">clicks</span>
+        </div>
+        <button class="clicker-btn" onclick="adjustVal('lsr-n',1)">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>高速回彈 HSR <span class="val" id="hsr-val">5 clicks</span></label>
+      <div class="clicker-row">
+        <button class="clicker-btn" onclick="adjustVal('hsr-n',-1)">−</button>
+        <div class="clicker-display">
+          <span class="num" id="hsr-n">5</span>
+          <span class="lbl">clicks</span>
+        </div>
+        <button class="clicker-btn" onclick="adjustVal('hsr-n',1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ 預載設定</h2>
+    <div class="field">
+      <label>彈簧預載 (mm)<br><small style="color:var(--text3)">Preload</small></label>
+      <input type="number" id="preload" value="5" min="0" max="30" placeholder="mm" oninput="updateAdvice()">
+    </div>
+    <div class="field">
+      <label>彈簧磅數<br><small style="color:var(--text3)">Spring Rate</small></label>
+      <select id="spring-rate" onchange="updateAdvice()">
+        <option value="soft">偏軟 (輕量騎士)</option>
+        <option value="medium" selected>中等 (標準)</option>
+        <option value="hard">偏硬 (重量騎士)</option>
+        <option value="unknown">未知</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- 調整建議 -->
+<div id="tab-advice" class="panel">
+  <div class="card">
+    <h2>💡 智能調整建議</h2>
+    <div id="advice-list">
+      <div class="empty-state">
+        <div class="big">🔍</div>
+        <p>請先在「SAG 計算」頁面<br>輸入測量數據</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📖 症狀對照表</h2>
+    <div id="symptom-table">
+      <div class="advice-item">
+        <span class="advice-tag tag-info">症狀</span>
+        <div class="advice-text"><strong>過彎時車頭偏低 / 煞車點頭嚴重</strong><br>→ 增加前叉 LSC 壓縮阻尼，或增加預載</div>
+      </div>
+      <div class="advice-item">
+        <span class="advice-tag tag-info">症狀</span>
+        <div class="advice-text"><strong>顛簸路面感覺太硬 / 手腕震痛</strong><br>→ 減少 HSC 高速壓縮，檢查 SAG 是否過低</div>
+      </div>
+      <div class="advice-item">
+        <span class="advice-tag tag-info">症狀</span>
+        <div class="advice-text"><strong>過大落差後避震回彈跳動</strong><br>→ 增加 HSR / LSR 回彈阻尼（順時針）</div>
+      </div>
+      <div class="advice-item">
+        <span class="advice-tag tag-info">症狀</span>
+        <div class="advice-text"><strong>連續顛簸後避震沉底（堆疊）</strong><br>→ 減少回彈阻尼，讓避震器更快恢復</div>
+      </div>
+      <div class="advice-item">
+        <span class="advice-tag tag-info">症狀</span>
+        <div class="advice-text"><strong>車身側傾過多 / 轉彎不穩</strong><br>→ 增加 LSC，或考慮更硬的彈簧</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 紀錄表 -->
+<div id="tab-log" class="panel">
+  <div class="card">
+    <h2>📝 儲存目前設定</h2>
+    <div class="field">
+      <label>備註名稱（賽道、日期等）</label>
+      <input type="text" id="log-note" placeholder="例：武嶺下坡 2024/06" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:'Noto Sans TC',sans-serif;font-size:15px;padding:0.7rem 1rem;outline:none;" oninput="this.style.borderColor='var(--accent)'">
+    </div>
+    <button class="primary" onclick="saveRecord()">💾 儲存紀錄</button>
+  </div>
+
+  <div class="card">
+    <h2>🗂 歷史紀錄</h2>
+    <div class="record-list" id="record-list">
+      <div class="empty-state">
+        <div class="big">📋</div>
+        <p>尚無紀錄<br><small>儲存設定後會顯示在這裡</small></p>
+      </div>
+    </div>
+    <button class="secondary" onclick="exportCSV()" style="margin-top:0.75rem">匯出 CSV</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+let records = JSON.parse(localStorage.getItem('susp_records') || '[]');
+
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    if (['sag','damper','advice','log'][i] === name) t.classList.add('active');
+  });
+  if (name === 'advice') updateAdvice();
+  if (name === 'log') renderRecords();
+}
+
+function onWeightChange() {
+  document.getElementById('weight-val').textContent = document.getElementById('weight').value + ' kg';
+  document.getElementById('gear-val').textContent = document.getElementById('gear').value + ' kg';
+}
+
+function adjustVal(id, delta) {
+  let el = document.getElementById(id);
+  let v = parseInt(el.textContent) + delta;
+  if (v < 0) v = 0;
+  el.textContent = v;
+  let parent = el.closest('.field');
+  if (parent) {
+    let lbl = parent.querySelector('[id$="-click"]');
+    if (lbl) lbl.textContent = v + ' ' + (id.includes('-n') && id !== 'static-sag-n' && id !== 'rider-sag-n' ? 'clicks' : 'mm');
+  }
+  if (id === 'static-sag-n') document.getElementById('static-sag-click').textContent = v + ' mm';
+  if (id === 'rider-sag-n') document.getElementById('rider-sag-click').textContent = v + ' mm';
+  if (id === 'lsc-n') document.getElementById('lsc-val').textContent = v + ' clicks';
+  if (id === 'lsr-n') document.getElementById('lsr-val').textContent = v + ' clicks';
+  if (id === 'hsc-n') document.getElementById('hsc-val').textContent = v + ' clicks';
+  if (id === 'hsr-n') document.getElementById('hsr-val').textContent = v + ' clicks';
+  calcSag();
+}
+
+function calcSag() {
+  let travel = parseFloat(document.getElementById('travel').value) || 0;
+  let freeSag = parseFloat(document.getElementById('free-sag').value) || 0;
+  let staticMm = parseInt(document.getElementById('static-sag-n').textContent) || 0;
+  let riderMm = parseInt(document.getElementById('rider-sag-n').textContent) || 0;
+  if (travel <= 0) return;
+
+  let freePct = (freeSag / travel * 100).toFixed(1);
+  let staticPct = (staticMm / travel * 100).toFixed(1);
+  let riderPct = (riderMm / travel * 100).toFixed(1);
+
+  document.getElementById('free-pct').textContent = freePct;
+  document.getElementById('static-pct').textContent = staticPct;
+
+  let rp = parseFloat(riderPct);
+  let el = document.getElementById('rider-pct');
+  el.textContent = riderPct;
+  el.className = 'value ' + (rp < 20 ? 'bad' : rp >= 20 && rp <= 35 ? 'good' : rp <= 40 ? 'warn' : 'bad');
+
+  let bar = document.getElementById('sag-bar');
+  let pct = Math.min(rp, 50);
+  bar.style.width = (pct * 2) + '%';
+  let barColor, statusLabel;
+  if (rp < 20) { barColor = '#f87171'; statusLabel = '⚠ 太硬'; }
+  else if (rp <= 25) { barColor = '#fbbf24'; statusLabel = '稍硬'; }
+  else if (rp <= 35) { barColor = '#4ade80'; statusLabel = '✓ 理想範圍'; }
+  else if (rp <= 40) { barColor = '#fbbf24'; statusLabel = '稍軟'; }
+  else { barColor = '#f87171'; statusLabel = '⚠ 太軟'; }
+  bar.style.background = barColor;
+  bar.textContent = rp.toFixed(1) + '%';
+  document.getElementById('sag-status-label').textContent = statusLabel;
+  document.getElementById('sag-status-label').style.color = barColor;
+
+  updateAdvice();
+}
+
+function updateAdvice() {
+  let travel = parseFloat(document.getElementById('travel').value) || 0;
+  let riderMm = parseInt(document.getElementById('rider-sag-n').textContent) || 0;
+  let staticMm = parseInt(document.getElementById('static-sag-n').textContent) || 0;
+  let freeSag = parseFloat(document.getElementById('free-sag').value) || 0;
+  let lsc = parseInt(document.getElementById('lsc-n').textContent);
+  let lsr = parseInt(document.getElementById('lsr-n').textContent);
+  let weight = parseInt(document.getElementById('weight').value) + parseInt(document.getElementById('gear').value);
+  let springRate = document.getElementById('spring-rate').value;
+  let suspType = document.getElementById('suspension-type').value;
+  let riderPct = travel > 0 ? (riderMm / travel * 100) : 0;
+  let staticPct = travel > 0 ? (staticMm / travel * 100) : 0;
+
+  let items = [];
+
+  if (travel === 0) {
+    document.getElementById('advice-list').innerHTML = '<div class="empty-state"><div class="big">🔍</div><p>請先在「SAG 計算」頁面<br>輸入測量數據</p></div>';
+    return;
+  }
+
+  // SAG 分析
+  if (riderPct === 0) {
+    items.push({ tag: 'check', text: '<strong>尚未輸入動態 SAG</strong><br>請在 SAG 計算頁面使用計數器輸入騎乘者下沉量' });
+  } else if (riderPct < 20) {
+    items.push({ tag: 'adjust', text: '<strong>動態 SAG 過低（' + riderPct.toFixed(1) + '%）→ 避震太硬</strong><br>建議：減少彈簧預載，目標 25~35%。如已無預載空間，考慮更換較軟彈簧。' });
+  } else if (riderPct >= 20 && riderPct <= 35) {
+    items.push({ tag: 'ok', text: '<strong>動態 SAG 良好（' + riderPct.toFixed(1) + '%）✓</strong><br>SAG 設定在理想範圍內（25~35%），彈簧預載正確。' });
+  } else if (riderPct <= 40) {
+    items.push({ tag: 'adjust', text: '<strong>動態 SAG 偏高（' + riderPct.toFixed(1) + '%）→ 略軟</strong><br>建議：增加彈簧預載 2~3mm，重新測量 SAG。' });
+  } else {
+    items.push({ tag: 'adjust', text: '<strong>動態 SAG 過高（' + riderPct.toFixed(1) + '%）→ 避震太軟</strong><br>建議：增加彈簧預載至最大，若仍不足需更換更硬彈簧磅數。' });
+  }
+
+  // 自由 SAG
+  let freePct = travel > 0 ? (freeSag / travel * 100) : 0;
+  if (freePct > 5) {
+    items.push({ tag: 'check', text: '<strong>自由 SAG 偏高（' + freePct.toFixed(1) + '%）</strong><br>自由下沉量大代表彈簧較軟或預載不足，搭配動態 SAG 一起評估。' });
+  }
+
+  // 靜態 SAG
+  if (staticPct > 0 && riderPct > 0) {
+    let diff = riderPct - staticPct;
+    if (diff > 15) {
+      items.push({ tag: 'check', text: '<strong>靜態/動態 SAG 差距大（' + diff.toFixed(1) + '%）</strong><br>可能原因：騎乘姿勢重心前移過多，或彈簧磅數偏軟。' });
+    }
+  }
+
+  // 體重建議
+  if (weight < 60 && springRate === 'medium') {
+    items.push({ tag: 'info', text: '<strong>體重偏輕（' + weight + 'kg）</strong><br>建議考慮使用偏軟彈簧，或確保預載已調至最小值。' });
+  } else if (weight > 90 && springRate === 'medium') {
+    items.push({ tag: 'info', text: '<strong>體重偏重（' + weight + 'kg）</strong><br>建議考慮使用偏硬彈簧，標準磅數彈簧可能 SAG 偏大。' });
+  }
+
+  // LSC 建議
+  if (lsc > 18) {
+    items.push({ tag: 'adjust', text: '<strong>低速壓縮 LSC 偏高（' + lsc + ' clicks）</strong><br>過高的壓縮阻尼會讓路感變硬，舒適性下降，建議從中間值開始（約 10~12 clicks）。' });
+  } else if (lsc < 4) {
+    items.push({ tag: 'adjust', text: '<strong>低速壓縮 LSC 偏低（' + lsc + ' clicks）</strong><br>壓縮阻尼過小容易造成急煞點頭、過彎側傾過大，建議增加至 8~10 clicks。' });
+  }
+
+  // 回彈建議
+  if (lsr < 4) {
+    items.push({ tag: 'adjust', text: '<strong>低速回彈 LSR 過快（' + lsr + ' clicks）</strong><br>回彈太快容易在顛簸路面跳動失控，建議增加至 8 clicks 以上。' });
+  } else if (lsr > 18) {
+    items.push({ tag: 'adjust', text: '<strong>低速回彈 LSR 過慢（' + lsr + ' clicks）</strong><br>連續顛簸時避震器無法及時復原，會「堆疊」沉底，建議減少至 15 clicks 以下。' });
+  }
+
+  // 懸吊類型提示
+  let typeHints = {
+    'mtb-rear': '<strong>登山車後避震建議</strong><br>動態 SAG 目標 25~30%。Pedal Platform / Climb Switch 上坡時請開啟鎖定，技術路段關閉。',
+    'mtb-fork': '<strong>登山車前叉建議</strong><br>動態 SAG 目標 20~25%。使用 Boost/Valve 氣柱充氣，每增加 5 PSI 約改變 2~3% SAG。',
+    'moto-rear': '<strong>摩托車後避震建議</strong><br>動態 SAG 目標 30~35mm（約 30%）。上賽道前建議全重新設定。',
+    'moto-front': '<strong>摩托車前叉建議</strong><br>前叉 SAG 目標 30~40mm。煞車點頭嚴重時優先增加 LSC。'
+  };
+  items.push({ tag: 'info', text: typeHints[suspType] });
+
+  let html = items.map(item => `
+    <div class="advice-item">
+      <span class="advice-tag tag-${item.tag}">${{adjust:'調整',ok:'良好',check:'注意',info:'提示'}[item.tag]}</span>
+      <div class="advice-text">${item.text}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('advice-list').innerHTML = html;
+}
+
+function saveRecord() {
+  let travel = parseFloat(document.getElementById('travel').value) || 0;
+  let riderMm = parseInt(document.getElementById('rider-sag-n').textContent) || 0;
+  let staticMm = parseInt(document.getElementById('static-sag-n').textContent) || 0;
+  let lsc = parseInt(document.getElementById('lsc-n').textContent);
+  let lsr = parseInt(document.getElementById('lsr-n').textContent);
+  let hsc = parseInt(document.getElementById('hsc-n').textContent);
+  let hsr = parseInt(document.getElementById('hsr-n').textContent);
+  let weight = parseInt(document.getElementById('weight').value);
+  let gear = parseInt(document.getElementById('gear').value);
+  let note = document.getElementById('log-note').value || '未命名設定';
+  let riderPct = travel > 0 ? (riderMm / travel * 100).toFixed(1) : 0;
+
+  let record = {
+    id: Date.now(),
+    note,
+    date: new Date().toLocaleDateString('zh-TW'),
+    weight: weight + gear,
+    travel,
+    staticMm, riderMm, riderPct,
+    lsc, lsr, hsc, hsr,
+    preload: document.getElementById('preload').value
+  };
+
+  records.unshift(record);
+  localStorage.setItem('susp_records', JSON.stringify(records));
+  document.getElementById('log-note').value = '';
+  showToast('✓ 設定已儲存！');
+  renderRecords();
+}
+
+function renderRecords() {
+  let el = document.getElementById('record-list');
+  if (records.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="big">📋</div><p>尚無紀錄<br><small>儲存設定後會顯示在這裡</small></p></div>';
+    return;
+  }
+  el.innerHTML = records.map(r => `
+    <div class="record-item" id="rec-${r.id}">
+      <button class="del-btn" onclick="deleteRecord(${r.id})">✕</button>
+      <div class="rec-head">
+        <span class="rec-name">${r.note}</span>
+        <span class="rec-date">${r.date}</span>
+      </div>
+      <div class="rec-grid">
+        <span>體重<strong>${r.weight}kg</strong></span>
+        <span>行程<strong>${r.travel}mm</strong></span>
+        <span>SAG<strong>${r.riderPct}%</strong></span>
+        <span>LSC<strong>${r.lsc}cl</strong></span>
+        <span>LSR<strong>${r.lsr}cl</strong></span>
+        <span>預載<strong>${r.preload}mm</strong></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteRecord(id) {
+  records = records.filter(r => r.id !== id);
+  localStorage.setItem('susp_records', JSON.stringify(records));
+  renderRecords();
+  showToast('已刪除紀錄');
+}
+
+function exportCSV() {
+  if (records.length === 0) { showToast('沒有紀錄可匯出'); return; }
+  let header = '日期,備註,體重(kg),行程(mm),靜態SAG(mm),動態SAG(mm),動態SAG(%),LSC,HSC,LSR,HSR,預載(mm)\n';
+  let rows = records.map(r =>
+    `${r.date},"${r.note}",${r.weight},${r.travel},${r.staticMm},${r.riderMm},${r.riderPct},${r.lsc},${r.hsc},${r.lsr},${r.hsr},${r.preload}`
+  ).join('\n');
+  let blob = new Blob(['\ufeff' + header + rows], { type: 'text/csv;charset=utf-8' });
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url; a.download = '避震器設定紀錄.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSV 已下載');
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// init
+onWeightChange();
+renderRecords();
+</script>
+</body>
+</html>
