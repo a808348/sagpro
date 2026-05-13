@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#D85A30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SagPro">
+<title>SagPro — 避震器調校紀錄</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange: #D85A30;
+  --orange-dark: #993C1D;
+  --orange-light: #FFF0EB;
+  --orange-mid: #F5C4B3;
+  --blue-bg: #E8F2FC;
+  --blue-text: #0C447C;
+  --green-bg: #EAF5E0;
+  --green-text: #255A10;
+  --amber-bg: #FEF3DB;
+  --amber-text: #7A4A05;
+  --red-bg: #FEF0EE;
+  --red-text: #8A1F1A;
+  --bg: #F7F5F2;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.09);
+  --border-med: rgba(0,0,0,0.14);
+  --text: #1A1815;
+  --text-2: #5A5652;
+  --text-3: #9A9490;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+[data-theme="dark"] {
+  --orange: #E06A40;
+  --orange-dark: #C85530;
+  --orange-light: #2E2118;
+  --orange-mid: #5A3525;
+  --bg: #1A1A1E;
+  --surface: #252528;
+  --border: rgba(255,255,255,0.08);
+  --border-med: rgba(255,255,255,0.14);
+  --text: #E8E4E0;
+  --text-2: #A8A4A0;
+  --text-3: #707068;
+  --green-bg: #1A2818;
+  --green-text: #7BC060;
+  --amber-bg: #2A2315;
+  --amber-text: #D4A845;
+  --red-bg: #2A1818;
+  --red-text: #E07070;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Instrument Sans', -apple-system, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
+  padding-top: env(safe-area-inset-top);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(56px + env(safe-area-inset-top));
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-mark {
+  width: 32px; height: 32px;
+  background: var(--orange);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.logo-mark img { width: 32px; height: 32px; display: block; }
+.logo-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+.logo-name span { color: var(--orange); }
+.header-right { display: flex; align-items: center; gap: 6px; }
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-med);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-2);
+  transition: all .15s;
+  font-family: inherit;
+  font-size: 16px;
+  padding: 0;
+}
+.icon-btn:hover { background: var(--bg); color: var(--text); }
+nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  position: sticky;
+  top: calc(56px + env(safe-area-inset-top));
+  z-index: 99;
+}
+.nav-btn {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: color .15s, border-color .15s;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.page { display: none; }
+.page.active { display: block; animation: fadeIn .2s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 10px;
+}
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.section-head h3 {
+  font-size: 14px; font-weight: 600;
+}
+.section-head .accent { color: var(--orange); }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .6rem; }
+@media (max-width: 480px) { .g3 { grid-template-columns: 1fr 1fr; } }
+label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+  display: block;
+  margin-bottom: 4px;
+  letter-spacing: .02em;
+}
+input[type=number], input[type=text], input[type=date], select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(216,90,48,.15);
+}
+textarea { resize: vertical; min-height: 60px; font-size: 14px; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239A9490' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.field { margin-bottom: .6rem; }
+.btn {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-med);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  transition: all .15s;
+}
+.btn:hover { background: var(--bg); }
+.btn:active { transform: scale(.98); }
+.btn-primary {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--orange);
+}
+.btn-primary:hover { background: var(--orange-dark); border-color: var(--orange-dark); }
+.btn-danger {
+  background: transparent;
+  color: var(--red-text);
+  border-color: var(--border-med);
+}
+.btn-danger:hover { background: var(--red-bg); }
+.btn-block { width: 100%; }
+.btn-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.preset-row {
+  display: flex; gap: .4rem; flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.preset-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-med);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-2);
+  transition: all .15s;
+}
+.preset-chip.active {
+  background: var(--orange-light);
+  border-color: var(--orange);
+  color: var(--orange-dark);
+}
+[data-theme="dark"] .preset-chip.active { color: #FFB590; }
+.record-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: .75rem;
+}
+.rec-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 10px;
+}
+.rec-bike {
+  font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.rec-bike-type {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--orange-light);
+  color: var(--orange-dark);
+  letter-spacing: .05em;
+}
+[data-theme="dark"] .rec-bike-type { color: #FFB590; }
+.rec-date {
+  font-size: 12px;
+  color: var(--text-3);
+  font-family: 'DM Mono', monospace;
+}
+.rec-actions { display: flex; gap: 6px; }
+.rec-act-btn {
+  background: none; border: none; padding: 4px;
+  color: var(--text-3); cursor: pointer; font-size: 14px;
+  font-family: inherit;
+}
+.rec-act-btn:hover { color: var(--text); }
+.rec-act-btn.danger:hover { color: var(--red-text); }
+.rec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-top: .5rem;
+}
+.rec-side-title {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-3);
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.rec-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px;
+  padding: 2px 0;
+}
+.rec-row span:first-child { color: var(--text-2); }
+.rec-row span:last-child { font-family: 'DM Mono', monospace; color: var(--text); font-weight: 500; }
+.rec-meta {
+  display: flex; gap: 1rem; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-2);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.rec-meta b { color: var(--text); font-family: 'DM Mono', monospace; }
+.rec-note {
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px; color: var(--text-2); font-style: italic;
+}
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-3);
+}
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text);
+  color: var(--surface);
+  padding: 10px 18px;
+  border-radius: 24px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 1000;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+.fab {
+  position: fixed;
+  right: 1.2rem;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  width: 56px; height: 56px;
+  border-radius: 28px;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  font-size: 24px;
+  font-weight: 300;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(216,90,48,.4);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 50;
+}
+.fab.show { display: flex; }
+.fab:active { transform: scale(.94); }
+.sag-hint {
+  background: var(--blue-bg);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--blue-text);
+  margin-top: 6px;
+}
+[data-theme="dark"] .sag-hint { color: #8AC8F0; }
+.sag-hint b { font-family: 'DM Mono', monospace; }
+.filter-row {
+  display: flex; gap: .5rem; flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.install-banner {
+  background: var(--orange-light);
+  border: 1px solid var(--orange-mid);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 1rem;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--orange-dark);
+}
+[data-theme="dark"] .install-banner { color: #FFB590; }
+.install-banner.show { display: flex; }
+.install-banner .grow { flex: 1; }
+.danger-zone {
+  border: 1px dashed var(--red-bg);
+  background: var(--red-bg);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-top: 1rem;
+}
+.danger-zone .card-title { color: var(--red-text); }
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .6rem;
+  margin-bottom: 1rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem;
+  text-align: center;
+}
+.stat-val {
+  font-size: 22px; font-weight: 600;
+  color: var(--orange);
+  font-family: 'DM Mono', monospace;
+}
+.stat-label {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark"><img src="icons/icon-192.png" alt="SagPro"></div>
+    <div class="logo-name">Sag<span>Pro</span></div>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" id="theme-toggle" title="切換深色/淺色" aria-label="theme">🌓</button>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" data-page="measure">紀錄</button>
+  <button class="nav-btn" data-page="history">歷史</button>
+  <button class="nav-btn" data-page="settings">設定</button>
+</nav>
+
+<div class="main">
+
+  <div class="install-banner" id="install-banner">
+    <span>📱</span>
+    <span class="grow">將 SagPro 加入主畫面,離線也能用</span>
+    <button class="btn btn-primary btn-sm" id="install-btn">安裝</button>
+    <button class="rec-act-btn" id="install-dismiss">✕</button>
+  </div>
+
+  <!-- ════════════ 紀錄頁 ════════════ -->
+  <section class="page active" id="page-measure">
+
+    <div class="card">
+      <div class="card-title">基本資訊</div>
+      <div class="preset-row" id="bike-presets">
+        <button class="preset-chip active" data-type="越野">越野</button>
+        <button class="preset-chip" data-type="仿賽">仿賽</button>
+        <button class="preset-chip" data-type="速可達">速可達</button>
+        <button class="preset-chip" data-type="街車">街車</button>
+      </div>
+      <div class="g2">
+        <div class="field">
+          <label>日期</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="field">
+          <label>車型/名稱</label>
+          <input type="text" id="f-bike-model" placeholder="例:KTM 390 Adv">
+        </div>
+      </div>
+      <div class="g3">
+        <div class="field">
+          <label>騎士體重 (kg)</label>
+          <input type="number" id="f-weight" step="0.5" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>前胎壓 (psi)</label>
+          <input type="number" id="f-tire-front" step="0.5" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>後胎壓 (psi)</label>
+          <input type="number" id="f-tire-rear" step="0.5" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head"><h3>前避震<span class="accent"> · FRONT</span></h3></div>
+      <div class="field">
+        <label>總行程 Stroke (mm)</label>
+        <input type="number" id="f-front-stroke" step="1" inputmode="numeric" placeholder="例:150">
+      </div>
+      <div class="g3">
+        <div class="field">
+          <label>Preload (圈)</label>
+          <input type="number" id="f-front-preload" step="0.25" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>壓縮 (click)</label>
+          <input type="number" id="f-front-comp" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>回彈 (click)</label>
+          <input type="number" id="f-front-reb" inputmode="numeric">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="field">
+          <label>Static SAG (mm)</label>
+          <input type="number" id="f-front-static" step="0.5" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Rider SAG (mm)</label>
+          <input type="number" id="f-front-race" step="0.5" inputmode="decimal">
+        </div>
+      </div>
+      <div class="sag-hint" id="hint-front">建議 Rider SAG: <b id="hint-front-val">填總行程計算</b></div>
+    </div>
+
+    <div class="card">
+      <div class="section-head"><h3>後避震<span class="accent"> · REAR</span></h3></div>
+      <div class="field">
+        <label>總行程 Stroke (mm)</label>
+        <input type="number" id="f-rear-stroke" step="1" inputmode="numeric" placeholder="例:300">
+      </div>
+      <div class="g3">
+        <div class="field">
+          <label>Preload (圈)</label>
+          <input type="number" id="f-rear-preload" step="0.25" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>壓縮 (click)</label>
+          <input type="number" id="f-rear-comp" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>回彈 (click)</label>
+          <input type="number" id="f-rear-reb" inputmode="numeric">
+        </div>
+      </div>
+      <div class="g2">
+        <div class="field">
+          <label>Static SAG (mm)</label>
+          <input type="number" id="f-rear-static" step="0.5" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Rider SAG (mm)</label>
+          <input type="number" id="f-rear-race" step="0.5" inputmode="decimal">
+        </div>
+      </div>
+      <div class="sag-hint" id="hint-rear">建議 Rider SAG: <b id="hint-rear-val">填總行程計算</b></div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>備註</label>
+        <textarea id="f-note" placeholder="路況、感受、調整理由..."></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-block" id="btn-save">儲存紀錄</button>
+      </div>
+      <div class="btn-row" style="margin-top:.5rem">
+        <button class="btn btn-block" id="btn-reset">清空表單</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════ 歷史頁 ════════════ -->
+  <section class="page" id="page-history">
+
+    <div class="stat-row" id="stat-row"></div>
+
+    <div class="filter-row" id="filter-row">
+      <button class="preset-chip active" data-filter="">全部</button>
+      <button class="preset-chip" data-filter="越野">越野</button>
+      <button class="preset-chip" data-filter="仿賽">仿賽</button>
+      <button class="preset-chip" data-filter="速可達">速可達</button>
+      <button class="preset-chip" data-filter="街車">街車</button>
+    </div>
+
+    <div id="history-list"></div>
+  </section>
+
+  <!-- ════════════ 設定頁 ════════════ -->
+  <section class="page" id="page-settings">
+
+    <div class="card">
+      <div class="card-title">資料管理</div>
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.5">
+        紀錄存在手機本地。清快取或換手機會丟資料,記得定期匯出備份。
+      </p>
+      <div class="btn-row">
+        <button class="btn" id="btn-export">⬇️ 匯出 JSON</button>
+        <button class="btn" id="btn-import">⬆️ 匯入 JSON</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">關於 SagPro</div>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6">
+        SagPro 是一款 PWA(無需上架商店),用於紀錄機車/越野車避震器調校。
+        將此網頁「加入主畫面」後,可像 App 一樣使用,離線也能查紀錄。
+      </p>
+      <p style="font-size:11px;color:var(--text-3);margin-top:.5rem;font-family:'DM Mono',monospace">v1.0 · 本地 IndexedDB</p>
+    </div>
+
+    <div class="danger-zone">
+      <div class="card-title">⚠ 危險區</div>
+      <button class="btn btn-danger btn-block" id="btn-clear">清除所有紀錄</button>
+    </div>
+  </section>
+
+</div>
+
+<button class="fab" id="fab-add">+</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// IndexedDB layer
+// ════════════════════════════════════════════════════════
+const DB_NAME = 'sagpro';
+const DB_VER = 1;
+const STORE = 'records';
+let dbP = null;
+
+function db() {
+  if (dbP) return dbP;
+  dbP = new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const os = d.createObjectStore(STORE, { keyPath: 'id' });
+        os.createIndex('created_at', 'created_at');
+      }
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+  return dbP;
+}
+
+function dbPut(rec) {
+  return db().then(d => new Promise((res, rej) => {
+    const tx = d.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(rec);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  }));
+}
+function dbAll() {
+  return db().then(d => new Promise((res, rej) => {
+    const tx = d.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => res(req.result || []);
+    req.onerror = () => rej(req.error);
+  }));
+}
+function dbDelete(id) {
+  return db().then(d => new Promise((res, rej) => {
+    const tx = d.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  }));
+}
+function dbClear() {
+  return db().then(d => new Promise((res, rej) => {
+    const tx = d.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  }));
+}
+
+// ════════════════════════════════════════════════════════
+// Utilities
+// ════════════════════════════════════════════════════════
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const uuid = () => 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._tid);
+  toast._tid = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function todayISO() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+function n(v) { return (v === '' || v === null || v === undefined) ? null : Number(v); }
+function show(v, unit = '') {
+  if (v === null || v === undefined || v === '' || Number.isNaN(v)) return '—';
+  return v + (unit ? ' ' + unit : '');
+}
+
+// ════════════════════════════════════════════════════════
+// SAG guidance: Rider SAG = 30% of total stroke
+// ════════════════════════════════════════════════════════
+const SAG_RATIO = 0.30;
+function suggestSag(strokeMm) {
+  if (!strokeMm || strokeMm <= 0) return null;
+  return Math.round(strokeMm * SAG_RATIO * 10) / 10;
+}
+
+// ════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════
+let currentBikeType = '越野';
+let editingId = null;
+let filterType = '';
+
+// ════════════════════════════════════════════════════════
+// Theme
+// ════════════════════════════════════════════════════════
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'dark' ? '#252528' : '#D85A30');
+  localStorage.setItem('sagpro-theme', t);
+}
+applyTheme(localStorage.getItem('sagpro-theme') || 'light');
+$('#theme-toggle').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+});
+
+// ════════════════════════════════════════════════════════
+// Tabs
+// ════════════════════════════════════════════════════════
+$$('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchPage(btn.dataset.page));
+});
+function switchPage(name) {
+  $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+  $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
+  $('#fab-add').classList.toggle('show', name === 'history');
+  if (name === 'history') renderHistory();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ════════════════════════════════════════════════════════
+// Bike type presets
+// ════════════════════════════════════════════════════════
+$$('#bike-presets .preset-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    currentBikeType = c.dataset.type;
+    $$('#bike-presets .preset-chip').forEach(x => x.classList.toggle('active', x === c));
+    updateHints();
+  });
+});
+function updateHints() {
+  const fs = parseFloat($('#f-front-stroke').value);
+  const rs = parseFloat($('#f-rear-stroke').value);
+  const fSag = suggestSag(fs);
+  const rSag = suggestSag(rs);
+  $('#hint-front-val').textContent = fSag !== null
+    ? `${fSag} mm  (${fs} × 30%)`
+    : '填總行程計算';
+  $('#hint-rear-val').textContent = rSag !== null
+    ? `${rSag} mm  (${rs} × 30%)`
+    : '填總行程計算';
+}
+['f-front-stroke', 'f-rear-stroke'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateHints);
+});
+
+// ════════════════════════════════════════════════════════
+// Form: save / reset / load for edit
+// ════════════════════════════════════════════════════════
+function readForm() {
+  return {
+    id: editingId || uuid(),
+    created_at: editingId ? (editingRec ? editingRec.created_at : new Date().toISOString()) : new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    date: $('#f-date').value || todayISO(),
+    bike: {
+      type: currentBikeType,
+      model: $('#f-bike-model').value.trim()
+    },
+    rider: { weight_kg: n($('#f-weight').value) },
+    tire: {
+      front_psi: n($('#f-tire-front').value),
+      rear_psi: n($('#f-tire-rear').value),
+    },
+    front: {
+      stroke: n($('#f-front-stroke').value),
+      preload: n($('#f-front-preload').value),
+      compression: n($('#f-front-comp').value),
+      rebound: n($('#f-front-reb').value),
+      sag_static: n($('#f-front-static').value),
+      sag_race: n($('#f-front-race').value),
+    },
+    rear: {
+      stroke: n($('#f-rear-stroke').value),
+      preload: n($('#f-rear-preload').value),
+      compression: n($('#f-rear-comp').value),
+      rebound: n($('#f-rear-reb').value),
+      sag_static: n($('#f-rear-static').value),
+      sag_race: n($('#f-rear-race').value),
+    },
+    note: $('#f-note').value.trim(),
+  };
+}
+let editingRec = null;
+function resetForm() {
+  editingId = null;
+  editingRec = null;
+  $('#f-date').value = todayISO();
+  $('#f-bike-model').value = '';
+  $('#f-weight').value = '';
+  $('#f-tire-front').value = '';
+  $('#f-tire-rear').value = '';
+  ['front', 'rear'].forEach(side => {
+    ['stroke', 'preload', 'comp', 'reb', 'static', 'race'].forEach(f => {
+      $('#f-' + side + '-' + f).value = '';
+    });
+  });
+  $('#f-note').value = '';
+  currentBikeType = '越野';
+  $$('#bike-presets .preset-chip').forEach(c => c.classList.toggle('active', c.dataset.type === currentBikeType));
+  updateHints();
+  $('#btn-save').textContent = '儲存紀錄';
+}
+function loadForm(rec) {
+  editingId = rec.id;
+  editingRec = rec;
+  $('#f-date').value = rec.date || todayISO();
+  $('#f-bike-model').value = rec.bike?.model || '';
+  currentBikeType = rec.bike?.type || '越野';
+  $$('#bike-presets .preset-chip').forEach(c => c.classList.toggle('active', c.dataset.type === currentBikeType));
+  $('#f-weight').value = rec.rider?.weight_kg ?? '';
+  $('#f-tire-front').value = rec.tire?.front_psi ?? '';
+  $('#f-tire-rear').value = rec.tire?.rear_psi ?? '';
+  $('#f-front-stroke').value = rec.front?.stroke ?? '';
+  $('#f-front-preload').value = rec.front?.preload ?? '';
+  $('#f-front-comp').value = rec.front?.compression ?? '';
+  $('#f-front-reb').value = rec.front?.rebound ?? '';
+  $('#f-front-static').value = rec.front?.sag_static ?? '';
+  $('#f-front-race').value = rec.front?.sag_race ?? '';
+  $('#f-rear-stroke').value = rec.rear?.stroke ?? '';
+  $('#f-rear-preload').value = rec.rear?.preload ?? '';
+  $('#f-rear-comp').value = rec.rear?.compression ?? '';
+  $('#f-rear-reb').value = rec.rear?.rebound ?? '';
+  $('#f-rear-static').value = rec.rear?.sag_static ?? '';
+  $('#f-rear-race').value = rec.rear?.sag_race ?? '';
+  $('#f-note').value = rec.note || '';
+  updateHints();
+  $('#btn-save').textContent = '更新紀錄';
+  switchPage('measure');
+}
+$('#btn-save').addEventListener('click', async () => {
+  const rec = readForm();
+  await dbPut(rec);
+  toast(editingId ? '已更新' : '已儲存');
+  resetForm();
+  switchPage('history');
+});
+$('#btn-reset').addEventListener('click', () => {
+  if (confirm('清空表單?')) resetForm();
+});
+
+// ════════════════════════════════════════════════════════
+// History page
+// ════════════════════════════════════════════════════════
+$$('#filter-row .preset-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    filterType = c.dataset.filter || '';
+    $$('#filter-row .preset-chip').forEach(x => x.classList.toggle('active', x === c));
+    renderHistory();
+  });
+});
+
+async function renderHistory() {
+  const all = await dbAll();
+  all.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  const list = filterType ? all.filter(r => r.bike?.type === filterType) : all;
+
+  // Stats
+  const stat = $('#stat-row');
+  stat.innerHTML = '';
+  const stats = [
+    { l: '紀錄', v: all.length },
+    { l: '本月', v: all.filter(r => (r.date || '').startsWith(new Date().toISOString().slice(0, 7))).length },
+    { l: '車型', v: new Set(all.map(r => r.bike?.type).filter(Boolean)).size },
+  ];
+  stats.forEach(s => {
+    const c = document.createElement('div');
+    c.className = 'stat-card';
+    c.innerHTML = `<div class="stat-val">${s.v}</div><div class="stat-label">${s.l}</div>`;
+    stat.appendChild(c);
+  });
+
+  const wrap = $('#history-list');
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty">
+      <div class="empty-icon">📝</div>
+      <div>還沒有紀錄</div>
+      <div style="font-size:12px;margin-top:6px">點右下角 + 新增第一筆</div>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(r => recCardHTML(r)).join('');
+  wrap.querySelectorAll('[data-action="edit"]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const rec = (await dbAll()).find(r => r.id === b.dataset.id);
+      if (rec) loadForm(rec);
+    });
+  });
+  wrap.querySelectorAll('[data-action="del"]').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm('刪除此筆紀錄?')) return;
+      await dbDelete(b.dataset.id);
+      toast('已刪除');
+      renderHistory();
+    });
+  });
+}
+
+function recCardHTML(r) {
+  const fr = r.front || {}, re = r.rear || {};
+  const bikeName = r.bike?.model || '未命名';
+  return `<div class="record-card">
+    <div class="rec-head">
+      <div>
+        <div class="rec-bike">
+          <span class="rec-bike-type">${r.bike?.type || '—'}</span>
+          ${escapeHtml(bikeName)}
+        </div>
+        <div class="rec-date">${fmtDate(r.date)}</div>
+      </div>
+      <div class="rec-actions">
+        <button class="rec-act-btn" data-action="edit" data-id="${r.id}" title="編輯">✏️</button>
+        <button class="rec-act-btn danger" data-action="del" data-id="${r.id}" title="刪除">🗑</button>
+      </div>
+    </div>
+    <div class="rec-meta">
+      <span>體重 <b>${show(r.rider?.weight_kg, 'kg')}</b></span>
+      <span>胎壓 <b>${show(r.tire?.front_psi)}/${show(r.tire?.rear_psi)}</b> psi</span>
+    </div>
+    <div class="rec-grid">
+      <div>
+        <div class="rec-side-title">前避震</div>
+        <div class="rec-row"><span>行程</span><span>${show(fr.stroke, 'mm')}</span></div>
+        <div class="rec-row"><span>Preload</span><span>${show(fr.preload, '圈')}</span></div>
+        <div class="rec-row"><span>壓縮</span><span>${show(fr.compression)}</span></div>
+        <div class="rec-row"><span>回彈</span><span>${show(fr.rebound)}</span></div>
+        <div class="rec-row"><span>Static</span><span>${show(fr.sag_static, 'mm')}</span></div>
+        <div class="rec-row"><span>Rider</span><span>${show(fr.sag_race, 'mm')}</span></div>
+      </div>
+      <div>
+        <div class="rec-side-title">後避震</div>
+        <div class="rec-row"><span>行程</span><span>${show(re.stroke, 'mm')}</span></div>
+        <div class="rec-row"><span>Preload</span><span>${show(re.preload, '圈')}</span></div>
+        <div class="rec-row"><span>壓縮</span><span>${show(re.compression)}</span></div>
+        <div class="rec-row"><span>回彈</span><span>${show(re.rebound)}</span></div>
+        <div class="rec-row"><span>Static</span><span>${show(re.sag_static, 'mm')}</span></div>
+        <div class="rec-row"><span>Rider</span><span>${show(re.sag_race, 'mm')}</span></div>
+      </div>
+    </div>
+    ${r.note ? `<div class="rec-note">${escapeHtml(r.note)}</div>` : ''}
+  </div>`;
+}
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+$('#fab-add').addEventListener('click', () => {
+  resetForm();
+  switchPage('measure');
+});
+
+// ════════════════════════════════════════════════════════
+// Settings: export / import / clear
+// ════════════════════════════════════════════════════════
+$('#btn-export').addEventListener('click', async () => {
+  const all = await dbAll();
+  const data = { app: 'SagPro', version: 1, exported_at: new Date().toISOString(), records: all };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sagpro-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`匯出 ${all.length} 筆`);
+});
+
+$('#btn-import').addEventListener('click', () => $('#import-file').click());
+$('#import-file').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const txt = await file.text();
+    const data = JSON.parse(txt);
+    const recs = data.records || data;
+    if (!Array.isArray(recs)) throw new Error('格式錯');
+    for (const r of recs) {
+      if (!r.id) r.id = uuid();
+      await dbPut(r);
+    }
+    toast(`匯入 ${recs.length} 筆`);
+    if ($('#page-history').classList.contains('active')) renderHistory();
+  } catch (err) {
+    alert('匯入失敗: ' + err.message);
+  }
+  e.target.value = '';
+});
+
+$('#btn-clear').addEventListener('click', async () => {
+  if (!confirm('真的要清除所有紀錄? 此操作無法復原。')) return;
+  if (!confirm('再次確認: 全部紀錄將永久刪除。')) return;
+  await dbClear();
+  toast('已清空');
+  if ($('#page-history').classList.contains('active')) renderHistory();
+});
+
+// ════════════════════════════════════════════════════════
+// PWA: install prompt
+// ════════════════════════════════════════════════════════
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (localStorage.getItem('sagpro-install-dismissed') !== '1') {
+    $('#install-banner').classList.add('show');
+  }
+});
+$('#install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $('#install-banner').classList.remove('show');
+});
+$('#install-dismiss').addEventListener('click', () => {
+  $('#install-banner').classList.remove('show');
+  localStorage.setItem('sagpro-install-dismissed', '1');
+});
+
+// ════════════════════════════════════════════════════════
+// Service worker
+// ════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW reg failed', err));
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════════
+$('#f-date').value = todayISO();
+updateHints();
+</script>
+</body>
+</html>
