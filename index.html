@@ -206,6 +206,13 @@ select {
   padding-right: 28px;
 }
 .field { margin-bottom: .6rem; }
+.input-of { display:flex; align-items:center; gap:6px; }
+.input-of > span { color:var(--mid); font-weight:600; flex-shrink:0; }
+.input-of > input { flex:1; min-width:0; }
+.damp-group { display:flex; flex-direction:column; gap:6px; margin-bottom:.6rem; }
+.damp-row { display:flex; align-items:center; gap:10px; }
+.damp-row > label { flex:0 0 108px; font-size:.82rem; color:var(--mid); font-weight:500; margin:0; }
+.damp-row > .input-of { flex:1; }
 .btn {
   padding: 10px 16px;
   border-radius: var(--radius);
@@ -501,18 +508,30 @@ select {
         <label>總行程 Stroke (mm)</label>
         <input type="number" id="f-front-stroke" step="1" inputmode="numeric" placeholder="例:150">
       </div>
-      <div class="g3">
-        <div class="field">
+      <div class="damp-group">
+        <div class="damp-row">
           <label>Preload (圈)</label>
-          <input type="number" id="f-front-preload" step="0.25" inputmode="decimal">
+          <div class="input-of">
+            <input type="number" id="f-front-preload" step="0.25" inputmode="decimal" placeholder="當前">
+            <span>/</span>
+            <input type="number" id="f-front-preload-max" step="0.25" inputmode="decimal" placeholder="總數">
+          </div>
         </div>
-        <div class="field">
+        <div class="damp-row">
           <label>壓縮 (click)</label>
-          <input type="number" id="f-front-comp" inputmode="numeric">
+          <div class="input-of">
+            <input type="number" id="f-front-comp" inputmode="numeric" placeholder="當前">
+            <span>/</span>
+            <input type="number" id="f-front-comp-max" inputmode="numeric" placeholder="總數">
+          </div>
         </div>
-        <div class="field">
+        <div class="damp-row">
           <label>回彈 (click)</label>
-          <input type="number" id="f-front-reb" inputmode="numeric">
+          <div class="input-of">
+            <input type="number" id="f-front-reb" inputmode="numeric" placeholder="當前">
+            <span>/</span>
+            <input type="number" id="f-front-reb-max" inputmode="numeric" placeholder="總數">
+          </div>
         </div>
       </div>
       <div class="g2">
@@ -534,18 +553,30 @@ select {
         <label>總行程 Stroke (mm)</label>
         <input type="number" id="f-rear-stroke" step="1" inputmode="numeric" placeholder="例:300">
       </div>
-      <div class="g3">
-        <div class="field">
+      <div class="damp-group">
+        <div class="damp-row">
           <label>Preload (圈)</label>
-          <input type="number" id="f-rear-preload" step="0.25" inputmode="decimal">
+          <div class="input-of">
+            <input type="number" id="f-rear-preload" step="0.25" inputmode="decimal" placeholder="當前">
+            <span>/</span>
+            <input type="number" id="f-rear-preload-max" step="0.25" inputmode="decimal" placeholder="總數">
+          </div>
         </div>
-        <div class="field">
+        <div class="damp-row">
           <label>壓縮 (click)</label>
-          <input type="number" id="f-rear-comp" inputmode="numeric">
+          <div class="input-of">
+            <input type="number" id="f-rear-comp" inputmode="numeric" placeholder="當前">
+            <span>/</span>
+            <input type="number" id="f-rear-comp-max" inputmode="numeric" placeholder="總數">
+          </div>
         </div>
-        <div class="field">
+        <div class="damp-row">
           <label>回彈 (click)</label>
-          <input type="number" id="f-rear-reb" inputmode="numeric">
+          <div class="input-of">
+            <input type="number" id="f-rear-reb" inputmode="numeric" placeholder="當前">
+            <span>/</span>
+            <input type="number" id="f-rear-reb-max" inputmode="numeric" placeholder="總數">
+          </div>
         </div>
       </div>
       <div class="g2">
@@ -807,16 +838,22 @@ function readForm() {
     front: {
       stroke: n($('#f-front-stroke').value),
       preload: n($('#f-front-preload').value),
+      preload_max: n($('#f-front-preload-max').value),
       compression: n($('#f-front-comp').value),
+      comp_max: n($('#f-front-comp-max').value),
       rebound: n($('#f-front-reb').value),
+      reb_max: n($('#f-front-reb-max').value),
       sag_static: n($('#f-front-static').value),
       sag_race: n($('#f-front-race').value),
     },
     rear: {
       stroke: n($('#f-rear-stroke').value),
       preload: n($('#f-rear-preload').value),
+      preload_max: n($('#f-rear-preload-max').value),
       compression: n($('#f-rear-comp').value),
+      comp_max: n($('#f-rear-comp-max').value),
       rebound: n($('#f-rear-reb').value),
+      reb_max: n($('#f-rear-reb-max').value),
       sag_static: n($('#f-rear-static').value),
       sag_race: n($('#f-rear-race').value),
     },
@@ -833,8 +870,9 @@ function resetForm() {
   $('#f-tire-front').value = '';
   $('#f-tire-rear').value = '';
   ['front', 'rear'].forEach(side => {
-    ['stroke', 'preload', 'comp', 'reb', 'static', 'race'].forEach(f => {
-      $('#f-' + side + '-' + f).value = '';
+    ['stroke', 'preload', 'preload-max', 'comp', 'comp-max', 'reb', 'reb-max', 'static', 'race'].forEach(f => {
+      const el = $('#f-' + side + '-' + f);
+      if (el) el.value = '';
     });
   });
   $('#f-note').value = '';
@@ -855,14 +893,20 @@ function loadForm(rec) {
   $('#f-tire-rear').value = rec.tire?.rear_psi ?? '';
   $('#f-front-stroke').value = rec.front?.stroke ?? '';
   $('#f-front-preload').value = rec.front?.preload ?? '';
+  $('#f-front-preload-max').value = rec.front?.preload_max ?? '';
   $('#f-front-comp').value = rec.front?.compression ?? '';
+  $('#f-front-comp-max').value = rec.front?.comp_max ?? '';
   $('#f-front-reb').value = rec.front?.rebound ?? '';
+  $('#f-front-reb-max').value = rec.front?.reb_max ?? '';
   $('#f-front-static').value = rec.front?.sag_static ?? '';
   $('#f-front-race').value = rec.front?.sag_race ?? '';
   $('#f-rear-stroke').value = rec.rear?.stroke ?? '';
   $('#f-rear-preload').value = rec.rear?.preload ?? '';
+  $('#f-rear-preload-max').value = rec.rear?.preload_max ?? '';
   $('#f-rear-comp').value = rec.rear?.compression ?? '';
+  $('#f-rear-comp-max').value = rec.rear?.comp_max ?? '';
   $('#f-rear-reb').value = rec.rear?.rebound ?? '';
+  $('#f-rear-reb-max').value = rec.rear?.reb_max ?? '';
   $('#f-rear-static').value = rec.rear?.sag_static ?? '';
   $('#f-rear-race').value = rec.rear?.sag_race ?? '';
   $('#f-note').value = rec.note || '';
@@ -938,6 +982,12 @@ async function renderHistory() {
   });
 }
 
+function showOf(val, max, unit='') {
+  if (val == null && max == null) return '—';
+  const v = val != null ? val : '—';
+  const u = unit ? ' ' + unit : '';
+  return max != null ? v + ' / ' + max + u : v + u;
+}
 function recCardHTML(r) {
   const fr = r.front || {}, re = r.rear || {};
   const bikeName = r.bike?.model || '未命名';
@@ -963,18 +1013,18 @@ function recCardHTML(r) {
       <div>
         <div class="rec-side-title">前避震</div>
         <div class="rec-row"><span>行程</span><span>${show(fr.stroke, 'mm')}</span></div>
-        <div class="rec-row"><span>Preload</span><span>${show(fr.preload, '圈')}</span></div>
-        <div class="rec-row"><span>壓縮</span><span>${show(fr.compression)}</span></div>
-        <div class="rec-row"><span>回彈</span><span>${show(fr.rebound)}</span></div>
+        <div class="rec-row"><span>Preload</span><span>${showOf(fr.preload, fr.preload_max, '圈')}</span></div>
+        <div class="rec-row"><span>壓縮</span><span>${showOf(fr.compression, fr.comp_max)}</span></div>
+        <div class="rec-row"><span>回彈</span><span>${showOf(fr.rebound, fr.reb_max)}</span></div>
         <div class="rec-row"><span>Static</span><span>${show(fr.sag_static, 'mm')}</span></div>
         <div class="rec-row"><span>Rider</span><span>${show(fr.sag_race, 'mm')}</span></div>
       </div>
       <div>
         <div class="rec-side-title">後避震</div>
         <div class="rec-row"><span>行程</span><span>${show(re.stroke, 'mm')}</span></div>
-        <div class="rec-row"><span>Preload</span><span>${show(re.preload, '圈')}</span></div>
-        <div class="rec-row"><span>壓縮</span><span>${show(re.compression)}</span></div>
-        <div class="rec-row"><span>回彈</span><span>${show(re.rebound)}</span></div>
+        <div class="rec-row"><span>Preload</span><span>${showOf(re.preload, re.preload_max, '圈')}</span></div>
+        <div class="rec-row"><span>壓縮</span><span>${showOf(re.compression, re.comp_max)}</span></div>
+        <div class="rec-row"><span>回彈</span><span>${showOf(re.rebound, re.reb_max)}</span></div>
         <div class="rec-row"><span>Static</span><span>${show(re.sag_static, 'mm')}</span></div>
         <div class="rec-row"><span>Rider</span><span>${show(re.sag_race, 'mm')}</span></div>
       </div>

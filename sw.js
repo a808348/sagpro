@@ -1,5 +1,5 @@
 // SagPro service worker — offline cache
-const CACHE = 'sagpro-v1';
+const CACHE = 'sagpro-v2';
 const ASSETS = [
   './',
   './index.html',
