@@ -39,12 +39,10 @@ self.addEventListener('fetch', e => {
         }
         return resp;
       }).catch(() => {
-        // Offline fallback: only return index.html for HTML navigation requests.
-        // Other failed requests (images/json/etc) should propagate as errors
-        // so the browser doesn't cache HTML as the wrong content-type.
-        const isNav = req.mode === 'navigate'
-          || (req.destination === 'document')
-          || (req.headers.get('accept') || '').includes('text/html');
+        // Offline fallback: only return index.html for top-level page navigations.
+        // Other failed requests (images/json/XHR/etc) propagate as errors so the
+        // caller doesn't get HTML mis-typed as their expected resource.
+        const isNav = req.mode === 'navigate' || req.destination === 'document';
         if (isNav) return caches.match('./index.html');
         return Response.error();
       });
