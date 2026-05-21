@@ -207,11 +207,11 @@ select {
 }
 .field { margin-bottom: .6rem; }
 .input-of { display:flex; align-items:center; gap:6px; }
-.input-of > span { color:var(--mid); font-weight:600; flex-shrink:0; }
+.input-of > span { color:var(--text-3); font-weight:600; flex-shrink:0; }
 .input-of > input { flex:1; min-width:0; }
 .damp-group { display:flex; flex-direction:column; gap:6px; margin-bottom:.6rem; }
 .damp-row { display:flex; align-items:center; gap:10px; }
-.damp-row > label { flex:0 0 108px; font-size:.82rem; color:var(--mid); font-weight:500; margin:0; }
+.damp-row > label { flex:0 0 108px; font-size:.82rem; color:var(--text-3); font-weight:500; margin:0; }
 .damp-row > .input-of { flex:1; }
 .btn {
   padding: 10px 16px;
@@ -770,6 +770,8 @@ function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'dark' ? '#252528' : '#D85A30');
   localStorage.setItem('sagpro-theme', t);
+  const tBtn = document.getElementById('theme-toggle');
+  if (tBtn) tBtn.textContent = t === 'dark' ? '☀️' : '🌙';
 }
 applyTheme(localStorage.getItem('sagpro-theme') || 'light');
 $('#theme-toggle').addEventListener('click', () => {
@@ -788,7 +790,7 @@ function switchPage(name) {
   $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
   $('#fab-add').classList.toggle('show', name === 'history');
   if (name === 'history') renderHistory();
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 // ════════════════════════════════════════════════════════
@@ -946,7 +948,7 @@ async function renderHistory() {
   stat.innerHTML = '';
   const stats = [
     { l: '紀錄', v: all.length },
-    { l: '本月', v: all.filter(r => (r.date || '').startsWith(new Date().toISOString().slice(0, 7))).length },
+    { l: '本月', v: all.filter(r => (r.date || '').startsWith(todayISO().slice(0, 7))).length },
     { l: '車型', v: new Set(all.map(r => r.bike?.type).filter(Boolean)).size },
   ];
   stats.forEach(s => {
@@ -966,21 +968,31 @@ async function renderHistory() {
     return;
   }
   wrap.innerHTML = list.map(r => recCardHTML(r)).join('');
-  wrap.querySelectorAll('[data-action="edit"]').forEach(b => {
-    b.addEventListener('click', async () => {
-      const rec = (await dbAll()).find(r => r.id === b.dataset.id);
+  // Cache rendered list for edit-click lookup (avoids extra dbAll round-trip).
+  renderHistory._lastList = list;
+}
+
+// Single delegated listener for history list (attached once at startup).
+(function attachHistoryDelegation() {
+  const wrap = $('#history-list');
+  if (!wrap || wrap._delegated) return;
+  wrap._delegated = true;
+  wrap.addEventListener('click', async ev => {
+    const btn = ev.target.closest('[data-action]');
+    if (!btn || !wrap.contains(btn)) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.action === 'edit') {
+      const rec = (renderHistory._lastList || []).find(r => r.id === id)
+        || (await dbAll()).find(r => r.id === id);
       if (rec) loadForm(rec);
-    });
-  });
-  wrap.querySelectorAll('[data-action="del"]').forEach(b => {
-    b.addEventListener('click', async () => {
+    } else if (btn.dataset.action === 'del') {
       if (!confirm('刪除此筆紀錄?')) return;
-      await dbDelete(b.dataset.id);
+      await dbDelete(id);
       toast('已刪除');
       renderHistory();
-    });
+    }
   });
-}
+})();
 
 function showOf(val, max, unit='') {
   if (val == null && max == null) return '—';

@@ -1,5 +1,5 @@
 // SagPro service worker — offline cache
-const CACHE = 'sagpro-v2';
+const CACHE = 'sagpro-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,9 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c =>
+      Promise.allSettled(ASSETS.map(url => c.add(url)))
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -36,7 +38,16 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(req, clone));
         }
         return resp;
-      }).catch(() => caches.match('./index.html'));
+      }).catch(() => {
+        // Offline fallback: only return index.html for HTML navigation requests.
+        // Other failed requests (images/json/etc) should propagate as errors
+        // so the browser doesn't cache HTML as the wrong content-type.
+        const isNav = req.mode === 'navigate'
+          || (req.destination === 'document')
+          || (req.headers.get('accept') || '').includes('text/html');
+        if (isNav) return caches.match('./index.html');
+        return Response.error();
+      });
     })
   );
 });
