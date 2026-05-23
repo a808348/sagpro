@@ -940,7 +940,11 @@ $$('#filter-row .preset-chip').forEach(c => {
 
 async function renderHistory() {
   const all = await dbAll();
-  all.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  all.sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
   const list = filterType ? all.filter(r => r.bike?.type === filterType) : all;
 
   // Stats
@@ -981,15 +985,24 @@ async function renderHistory() {
     const btn = ev.target.closest('[data-action]');
     if (!btn || !wrap.contains(btn)) return;
     const id = btn.dataset.id;
-    if (btn.dataset.action === 'edit') {
-      const rec = (renderHistory._lastList || []).find(r => r.id === id)
-        || (await dbAll()).find(r => r.id === id);
-      if (rec) loadForm(rec);
-    } else if (btn.dataset.action === 'del') {
-      if (!confirm('刪除此筆紀錄?')) return;
-      await dbDelete(id);
-      toast('已刪除');
-      renderHistory();
+    try {
+      if (btn.dataset.action === 'edit') {
+        let rec = (renderHistory._lastList || []).find(r => r.id === id);
+        if (!rec) {
+          const all = await dbAll();
+          rec = all.find(r => r.id === id);
+        }
+        if (rec) loadForm(rec);
+        else toast('找不到此筆紀錄');
+      } else if (btn.dataset.action === 'del') {
+        if (!confirm('刪除此筆紀錄?')) return;
+        await dbDelete(id);
+        toast('已刪除');
+        renderHistory();
+      }
+    } catch (err) {
+      console.error('[history action]', err);
+      toast('操作失敗: ' + (err.message || err));
     }
   });
 })();
@@ -1070,6 +1083,20 @@ $('#btn-export').addEventListener('click', async () => {
 });
 
 $('#btn-import').addEventListener('click', () => $('#import-file').click());
+// Whitelist of keys we recognise on a record — anything else is dropped on import.
+const REC_KEYS = ['id', 'created_at', 'updated_at', 'date', 'bike', 'rider', 'tire', 'front', 'rear', 'note'];
+function sanitizeRec(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  const clean = {};
+  for (const k of REC_KEYS) {
+    if (r[k] !== undefined) clean[k] = r[k];
+  }
+  if (!clean.id || typeof clean.id !== 'string') clean.id = uuid();
+  const nowISO = new Date().toISOString();
+  if (!clean.created_at) clean.created_at = nowISO;
+  if (!clean.updated_at) clean.updated_at = clean.created_at;
+  return clean;
+}
 $('#import-file').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1078,11 +1105,14 @@ $('#import-file').addEventListener('change', async e => {
     const data = JSON.parse(txt);
     const recs = data.records || data;
     if (!Array.isArray(recs)) throw new Error('格式錯');
+    let imported = 0, skipped = 0;
     for (const r of recs) {
-      if (!r.id) r.id = uuid();
-      await dbPut(r);
+      const clean = sanitizeRec(r);
+      if (!clean) { skipped++; continue; }
+      await dbPut(clean);
+      imported++;
     }
-    toast(`匯入 ${recs.length} 筆`);
+    toast(`匯入 ${imported} 筆${skipped ? ` (跳過 ${skipped})` : ''}`);
     if ($('#page-history').classList.contains('active')) renderHistory();
   } catch (err) {
     alert('匯入失敗: ' + err.message);
@@ -1111,8 +1141,12 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 $('#install-btn').addEventListener('click', async () => {
   if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
+  try {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+  } catch (err) {
+    console.warn('[install prompt]', err);
+  }
   deferredPrompt = null;
   $('#install-banner').classList.remove('show');
 });

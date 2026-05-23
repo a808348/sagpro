@@ -1,5 +1,5 @@
 // SagPro service worker — offline cache
-const CACHE = 'sagpro-v3';
+const CACHE = 'sagpro-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,13 @@ const ASSETS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c =>
-      Promise.allSettled(ASSETS.map(url => c.add(url)))
+      Promise.allSettled(ASSETS.map(url => c.add(url))).then(results => {
+        // Surface partial cache failures so a broken deploy is visible in DevTools.
+        const failed = results
+          .map((r, i) => r.status === 'rejected' ? { url: ASSETS[i], reason: String(r.reason) } : null)
+          .filter(Boolean);
+        if (failed.length) console.warn('[SW] asset cache failures:', failed);
+      })
     ).then(() => self.skipWaiting())
   );
 });
